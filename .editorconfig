@@ -1,0 +1,4 @@
+﻿[*.cs]
+
+# OverrideAnalyzer: Method with OverrideAttribute must implement interface method
+dotnet_diagnostic.OverrideAnalyzer.severity = error
