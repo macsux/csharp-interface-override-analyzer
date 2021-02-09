@@ -6,13 +6,13 @@ namespace TestProject
     public class A : IA
     {
         [Override]
-        public void MethodName(long a) {}
+        public void MethodName<Q>(int a) {}
     }
     
     
     
     public interface IA 
     {
-        public void MethodName(int a) { /* default implementation */ }
+        public void MethodName<Q,R>(int a) { /* default implementation */ }
     }
 }

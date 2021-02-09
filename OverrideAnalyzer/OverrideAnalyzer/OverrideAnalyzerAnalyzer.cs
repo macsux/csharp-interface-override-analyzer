@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using System.Reflection;
 using System.Threading;
 
 namespace OverrideAnalyzer
@@ -13,6 +14,7 @@ namespace OverrideAnalyzer
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
     public class OverrideAnalyzerAnalyzer : DiagnosticAnalyzer
     {
+        
         public const string DiagnosticId = "OverrideAnalyzer";
 
         // You can change these strings in the Resources.resx file. If you do not want your analyzer to be localize-able, you can use regular strings for Title and MessageFormat.
@@ -47,7 +49,7 @@ namespace OverrideAnalyzer
             var methodsWithOverride = classSymbol.GetMembers()
                 .OfType<IMethodSymbol>()
                 .Except(classSymbol.Constructors)
-                .Where(method => method
+                .Where(method => !method.IsOverride && method
                     .GetAttributes()
                     .Select(x => x.AttributeClass)
                     .Any(attr => attr.TypeKind == TypeKind.Class && attr.GetUnversionedAssemblyQualifiedName() == OverrideAttributeQualifiedName))
@@ -59,12 +61,11 @@ namespace OverrideAnalyzer
                 .SelectMany(x => x.GetMembers()
                 .OfType<IMethodSymbol>())
                 .ToList();
+
             var nonImplementingMethods = methodsWithOverride
                 .Where(methodSymbol => !interfaceMethods
-                    .Any(x =>
-                        x.Name == methodSymbol.Name &&
-                        SymbolEqualityComparer.Default.Equals(x.ReturnType, methodSymbol.ReturnType) &&
-                        x.Parameters.Select(p => p.Type).SequenceEqual(methodSymbol.Parameters.Select(p => p.Type))))
+                    .Select(interfaceMethod => classSymbol.FindImplementationForInterfaceMember(interfaceMethod))
+                    .Any(implementation => SymbolEqualityComparer.Default.Equals(methodSymbol, implementation)))
                 .ToList();
             var diagnostics = nonImplementingMethods
                 .Select(x => Diagnostic.Create(Rule, x.Locations[0], x.Name))
@@ -74,6 +75,7 @@ namespace OverrideAnalyzer
                 context.ReportDiagnostic(diagnostic);
             }
         }
+
     }
 
 }
